@@ -11,8 +11,9 @@
 // #include <Arduino.h>
 
 Adafruit_NeoTrellis trellis;
+Adafruit_NeoTrellisM4 trellisM4 = Adafruit_NeoTrellisM4();
 
-bool initialised = false;
+bool initialised = true;
 
 struct Rgb
 {
@@ -96,14 +97,14 @@ void setup()
     Serial.begin(115200);
     if (!trellis.begin())
     {
-        Serial.println("failed to begin trellis");
-        // while (1)
-        //     ;
+        initialised = false;
     }
-    else
-    {
-        initialised = true;
-    }
+
+    trellisM4.begin();
+    // if (!)
+    // {
+    //     initialised = false;
+    // }
 
     // Serial.println("basic keypad test!");
 
@@ -120,6 +121,24 @@ unsigned long last = 0;
 void loop()
 {
     trellis.read();
+
+    trellisM4.tick();
+    while (trellisM4.available())
+    {
+        keypadEvent e = trellisM4.read();
+        Serial.print((int)e.bit.KEY);
+        if (e.bit.EVENT == KEY_JUST_PRESSED)
+        {
+            Serial.println(" pressed");
+            trellisM4.setPixelColor(e.bit.KEY, 0xFFFFFF);
+        }
+        else if (e.bit.EVENT == KEY_JUST_RELEASED)
+        {
+            Serial.println(" released");
+            trellisM4.setPixelColor(e.bit.KEY, 0x0);
+        }
+    }
+
     delay(10);
 
     if (millis() - last > 2000)
