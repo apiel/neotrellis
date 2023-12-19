@@ -6,6 +6,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_NeoPixel_ZeroDMA.h>
 #include <Adafruit_NeoTrellis.h>
+#include <Adafruit_NeoTrellisM4.h>
 
 // #include <Arduino.h>
 
@@ -79,7 +80,6 @@ TrellisCallback blink(keyEvent evt)
         uint32_t c = trellis.pixels.Color(color.rgb.r, color.rgb.g, color.rgb.b);
         trellis.pixels.setBrightness(color.brightness);
         trellis.pixels.setPixelColor(evt.bit.NUM, c);
-        trellis.pixels.setBrightness(color.brightness);
     }
     else if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_FALLING)
     {
