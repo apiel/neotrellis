@@ -1,0 +1,85 @@
+// Trellis M4 MIDI Keypad CC
+// sends 32 notes, pitch bend & a CC from accelerometer tilt over USB MIDI
+
+#include <Adafruit_Sensor.h>
+#include <Adafruit_ADXL343.h>
+#include <Adafruit_NeoTrellisM4.h>
+
+#include "neo.h"
+
+#define MIDI_CHANNEL 0 // default channel # is 0
+// Set the value of first note, C is a good choice. Lowest C is 0.
+// 36 is a good default. 48 is a high range. Set to 24 for a bass machine.
+#define FIRST_MIDI_NOTE 36
+
+Adafruit_ADXL343 accel = Adafruit_ADXL343(123, &Wire1);
+
+int xCC = 1; // choose a CC number to control with x axis tilting of the board. 1 is mod wheel, for example.
+
+int last_xbend = 0;
+int last_ybend = 0;
+
+Adafruit_NeoTrellisM4 trellisM4 = Adafruit_NeoTrellisM4();
+
+void setup()
+{
+    Serial.begin(115200);
+    // while (!Serial);
+    Serial.println("MIDI keypad & pitchbend!");
+
+    trellisM4.begin();
+    trellisM4.setBrightness(80);
+
+    // USB MIDI messages sent over the micro B USB port
+    Serial.println("Enabling MIDI on USB");
+    trellisM4.enableUSBMIDI(true);
+    trellisM4.setUSBMIDIchannel(MIDI_CHANNEL);
+    // UART MIDI messages sent over the 4-pin STEMMA connector (3.3V logic)
+    Serial.println("Enabling MIDI on UART");
+    trellisM4.enableUARTMIDI(true);
+    trellisM4.setUARTMIDIchannel(MIDI_CHANNEL);
+
+    if (!accel.begin())
+    {
+        Serial.println("No accelerometer found");
+        while (1)
+            ;
+    }
+
+    // neoSetup();
+}
+
+void loop()
+{
+    // neoLoop();
+
+    // put your main code here, to run repeatedly:
+    trellisM4.tick();
+
+    while (trellisM4.available())
+    {
+        keypadEvent e = trellisM4.read();
+        int key = e.bit.KEY;
+        Serial.print("Keypad key: ");
+        Serial.println(key);
+        Serial.print("MIDI note: ");
+        Serial.println(FIRST_MIDI_NOTE + key);
+
+        if (e.bit.EVENT == KEY_JUST_PRESSED)
+        {
+            Serial.println(" pressed\n");
+            trellisM4.setPixelColor(key, 0xFFFFFF);
+            trellisM4.noteOn(FIRST_MIDI_NOTE + key, 64);
+        }
+        else if (e.bit.EVENT == KEY_JUST_RELEASED)
+        {
+            Serial.println(" released\n");
+            trellisM4.setPixelColor(key, 0x0);
+            trellisM4.noteOff(FIRST_MIDI_NOTE + key, 64);
+        }
+    }
+
+    trellisM4.sendMIDI(); // send any pending MIDI messages
+
+    delay(10);
+}
