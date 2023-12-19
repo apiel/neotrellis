@@ -8,7 +8,8 @@
 #include <Adafruit_NeoTrellis.h>
 #include <Adafruit_NeoTrellisM4.h>
 
-// #include <Arduino.h>
+#define MIDI_CHANNEL 0
+#define FIRST_MIDI_NOTE 36
 
 Adafruit_NeoTrellis trellis;
 Adafruit_NeoTrellisM4 trellisM4 = Adafruit_NeoTrellisM4();
@@ -61,16 +62,19 @@ uint8_t counter = 0;
 // define a callback for key presses
 TrellisCallback blink(keyEvent evt)
 {
+    uint8_t key = evt.bit.NUM + (int)(evt.bit.NUM / 4.0 + 1) * 8;
     if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_RISING)
     {
         Color color = getColor(counter++);
-        Serial.printf("color: rgb #%x  brightness %d\n", color.value, color.brightness);
+        Serial.printf("key %d >> %d color: rgb #%x  brightness %d\n", evt.bit.NUM, key, color.value, color.brightness);
         trellis.pixels.setBrightness(color.brightness);
         trellis.pixels.setPixelColor(evt.bit.NUM, color.value);
+        trellisM4.noteOn(FIRST_MIDI_NOTE + key, 127);
     }
     else if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_FALLING)
     {
         trellis.pixels.setPixelColor(evt.bit.NUM, 0);
+        trellisM4.noteOff(FIRST_MIDI_NOTE + evt.bit.NUM, 127);
     }
 
     trellis.pixels.show();
@@ -96,6 +100,11 @@ void setup()
         trellis.activateKey(i, SEESAW_KEYPAD_EDGE_FALLING);
         trellis.registerCallback(i, blink);
     }
+
+    // USB MIDI messages sent over the micro B USB port
+    Serial.println("Enabling MIDI on USB");
+    trellisM4.enableUSBMIDI(true);
+    trellisM4.setUSBMIDIchannel(MIDI_CHANNEL);
 }
 
 unsigned long last = 0;
@@ -107,21 +116,19 @@ void loop()
     while (trellisM4.available())
     {
         keypadEvent e = trellisM4.read();
-        Serial.print((int)e.bit.KEY);
+        uint8_t key = e.bit.KEY + (int)(e.bit.KEY / 8.0) * 4;
         if (e.bit.EVENT == KEY_JUST_PRESSED)
         {
-            Serial.println(" pressed");
-            // trellisM4.setPixelColor(e.bit.KEY, 0xFFFFFF);
-
             Color color = getColor(counter++);
-            Serial.printf("color: rgb #%x  brightness %d\n", color.value, color.brightness);
+            Serial.printf("key %d >> %d color: rgb #%x  brightness %d\n", e.bit.KEY, key, color.value, color.brightness);
             trellisM4.setBrightness(color.brightness);
             trellisM4.setPixelColor(e.bit.KEY, color.value);
+            trellisM4.noteOn(FIRST_MIDI_NOTE + key, 127);
         }
         else if (e.bit.EVENT == KEY_JUST_RELEASED)
         {
-            Serial.println(" released");
             trellisM4.setPixelColor(e.bit.KEY, 0x0);
+            trellisM4.noteOff(FIRST_MIDI_NOTE + key, 127);
         }
     }
 
