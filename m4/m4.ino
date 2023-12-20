@@ -11,7 +11,7 @@
 Adafruit_NeoTrellis trellis;
 Adafruit_NeoTrellisM4 trellisM4 = Adafruit_NeoTrellisM4();
 
-uint32_t colors[] = {
+uint32_t baseColors[] = {
     0xffffff,
     0x3761a1,
     0x3791a1,
@@ -30,27 +30,39 @@ uint32_t colors[] = {
     0x964B00,
 };
 
-const uint8_t colorCount = sizeof(colors) / sizeof(uint32_t);
-const uint8_t maxColor = colorCount * 10;
-const float brightnessRatio = 255.0 / 10.0;
+const uint8_t baseColorCount = sizeof(baseColors) / sizeof(uint32_t);
+const uint8_t colorCount = baseColorCount * 10;
 
-struct Color
-{
-    uint32_t value;
-    uint8_t brightness;
-};
+uint32_t colors[255] = {0};
 
-Color getColor(uint8_t color)
+void initColors()
 {
-    if (color > maxColor)
+    for (uint8_t i = 0; i < 255; i++)
     {
-        return {.value = 0, .brightness = 0};
+        colors[i] = 0;
     }
 
-    uint8_t colorIndex = color / 10;
-    uint8_t brighness = (color % 10) * brightnessRatio + 5;
+    const float brightnessRatio = 255.0 / 10.0;
 
-    return {.value = colors[colorIndex], .brightness = brighness};
+    for (uint8_t i = 0; i < baseColorCount; i++)
+    {
+        for (uint8_t j = 0; j < 10; j++)
+        {
+            uint8_t brightness = (j % 10) * brightnessRatio + 5;
+            uint32_t c = baseColors[i];
+            uint8_t r = (uint8_t)(c >> 16), g = (uint8_t)(c >> 8), b = (uint8_t)c;
+            if (brightness)
+            {
+                r = (r * brightness) >> 8;
+                g = (g * brightness) >> 8;
+                b = (b * brightness) >> 8;
+            }
+            // colors[i * 10 + j] = (uint32_t)r << 16 | (uint32_t)g << 8 | b;
+            colors[i * 10 + j] = Adafruit_NeoPixel::Color(r, g, b);
+        }
+    }
+
+    colors[254] = 0; // Let's ensure that 255 is 0
 }
 
 void sendKeyOn(uint8_t key)
@@ -108,6 +120,7 @@ void setup()
         trellis.registerCallback(i, callback);
     }
 
+    initColors();
 }
 
 unsigned long last = 0;
@@ -136,20 +149,18 @@ void loop()
         if (cmd == 0x23) // equivalent to '#' command to set color
         {
             uint8_t key = Serial.read();
-            Color color = getColor(Serial.read());
-            // Serial.printf("key %d color: rgb #%x  brightness %d\n", key, color.value, color.brightness);
+            uint32_t color = colors[Serial.read()];
+            // Serial.printf("key %d color: rgb #%x\n", key, color);
 
             uint8_t column = key % 12;
             uint8_t row = key / 12;
             if (column < 8)
             {
-                trellisM4.setBrightness(color.brightness);
-                trellisM4.setPixelColor(column + row * 8, color.value);
+                trellisM4.setPixelColor(column + row * 8, color);
             }
             else
             {
-                trellis.pixels.setBrightness(color.brightness);
-                trellis.pixels.setPixelColor(column - 8 + row * 4, color.value);
+                trellis.pixels.setPixelColor(column - 8 + row * 4, color);
                 trellis.pixels.show();
             }
         }

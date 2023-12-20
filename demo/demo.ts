@@ -42,7 +42,7 @@ async function loop() {
       // console.log({state});
       await sleep(50);
     }
-    state[2] = 255; // button color off
+    state[2] = 254; // button color off
     port.write(state);
     // console.log({state});
     await sleep(50);
