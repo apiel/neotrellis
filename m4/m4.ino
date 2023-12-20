@@ -132,6 +132,22 @@ void loop()
         }
     }
 
+    // for (;;)
+    // {
+    //     midiEventPacket_t packet = MidiUSB.read();
+    //     if (packet.header == 0)
+    //     {
+    //         break;
+    //     }
+    //     Serial.printf("MIDI recv: %02x %02x %02x %02x\n", packet.header, packet.byte1, packet.byte2, packet.byte3);
+    // }
+
+    while (MidiUSB.available())
+    {
+        midiEventPacket_t packet = MidiUSB.read();
+        Serial.printf("MIDI recv: %02x %02x %02x %02x\n", packet.header, packet.byte1, packet.byte2, packet.byte3);
+    }
+
     delay(10);
 
     if (millis() - last > 2000)
