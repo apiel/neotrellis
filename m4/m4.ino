@@ -142,10 +142,35 @@ void loop()
     //     Serial.printf("MIDI recv: %02x %02x %02x %02x\n", packet.header, packet.byte1, packet.byte2, packet.byte3);
     // }
 
-    while (MidiUSB.available())
+    // while (MidiUSB.available())
+    // {
+    //     midiEventPacket_t packet = MidiUSB.read();
+    //     Serial.printf("MIDI recv: %02x %02x %02x %02x\n", packet.header, packet.byte1, packet.byte2, packet.byte3);
+    // }
+
+    while (Serial.available())
     {
-        midiEventPacket_t packet = MidiUSB.read();
-        Serial.printf("MIDI recv: %02x %02x %02x %02x\n", packet.header, packet.byte1, packet.byte2, packet.byte3);
+        uint8_t cmd = Serial.read();
+        if (cmd == 0x23) // equivalent to '#' command to set color
+        {
+            uint8_t key = Serial.read();
+            Color color = getColor(Serial.read());
+            // Serial.printf("key %d color: rgb #%x  brightness %d\n", key, color.value, color.brightness);
+
+            uint8_t column = key % 12;
+            uint8_t row = key / 12;
+            if (column < 8)
+            {
+                trellisM4.setBrightness(color.brightness);
+                trellisM4.setPixelColor(column + row * 8, color.value);
+            }
+            else
+            {
+                trellis.pixels.setBrightness(color.brightness);
+                trellis.pixels.setPixelColor(column - 8 + row * 4, color.value);
+                trellis.pixels.show();
+            }
+        }
     }
 
     delay(10);
