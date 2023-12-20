@@ -12,13 +12,23 @@ port.on("open", () => {
 });
 
 const parser = port.pipe(new ReadlineParser());
-parser.on("data", console.log);
+parser.on("data", (data) => {
+  console.log(`data: '${data}'`);
+  if (data[0] === "$") {
+    // convert char to number
+    console.log("pressed: ", data[1].charCodeAt(0));
+  } else if (data[0] === "!") {
+    console.log("released: ", data[1].charCodeAt(0));
+  } else {
+    console.log("unknown: ", data);
+  }
+});
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const buttonCount = 12 * 4;
 const colorCount = 16 * 10; // 16 colors of 10 brightness
-                            // 255 is reserved for no color
+// 255 is reserved for no color
 
 async function loop() {
   const state: Uint8Array = new Uint8Array(3);
