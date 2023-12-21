@@ -6,17 +6,32 @@ const port = new SerialPort({
   // baudRate: 921600,
 });
 
+function setButton(key: number, color: number) {
+  const state: Uint8Array = new Uint8Array(3);
+  state[0] = 0x25; // equivalent to '%'
+  state[1] = key;
+  state[2] = color;
+  port.write(state);
+}
+
 port.on("open", () => {
   console.log("serial port was open");
-  loop();
+  // 36, 37, 38, 25
+  setButton(36, 10);
+  setButton(37, 10);
+  setButton(38, 10);
+  setButton(25, 10);
 });
 
 const parser = port.pipe(new ReadlineParser());
 parser.on("data", (data) => {
   console.log(`data: '${data}'`);
   if (data[0] === "$") {
-    // convert char to number
-    console.log("pressed: ", data[1].charCodeAt(0));
+    const key = data[1].charCodeAt(0);
+    console.log("pressed: ", key);
+    if (key === 7) {
+      loop();
+    }
   } else if (data[0] === "!") {
     console.log("released: ", data[1].charCodeAt(0));
   } else {
